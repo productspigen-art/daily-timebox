@@ -338,6 +338,25 @@ main{padding:20px 18px 0}
 .tb-lbl{font-size:10.5px;font-weight:700;letter-spacing:-.01em}
 
 input[type=file]{display:none}
+
+/* ===== sync ===== */
+.sync-card{padding:15px}
+.sync-status{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.ss-dot{width:9px;height:9px;border-radius:50%;background:var(--ink-faint);flex-shrink:0;transition:.2s}
+.ss-dot.on{background:var(--green)}
+.ss-dot.syncing{background:var(--gold);animation:pulse 1s infinite}
+.ss-dot.err{background:var(--accent-deep)}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.ss-tx{font-size:13.5px;font-weight:680;letter-spacing:-.01em}
+.sync-desc{font-size:12.5px;line-height:1.55;color:var(--ink-soft);margin-bottom:12px;letter-spacing:-.01em}
+.sync-desc b{color:var(--accent-deep);font-weight:720}
+.sync-input{width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:11px;font-size:15px;background:var(--bg);margin-bottom:10px;font-weight:600;letter-spacing:-.01em}
+.sync-input:focus{outline:none;border-color:var(--accent)}
+.sync-btns{display:flex;gap:8px}
+.sync-btn{flex:1;padding:12px;border-radius:11px;font-size:13.5px;font-weight:700;background:var(--line-soft);color:var(--ink-soft);letter-spacing:-.01em;transition:.15s}
+.sync-btn.primary{background:var(--navy);color:#fff}
+.sync-btn:active{transform:scale(.97)}
+.sync-foot{font-size:11.5px;color:var(--ink-faint);margin-top:10px;line-height:1.5;font-weight:600}
 </style>
 </head>
 <body>
@@ -446,8 +465,33 @@ input[type=file]{display:none}
         <span class="cl-item"><span class="cl-dot"></span> 기록이 있는 날</span>
         <span class="cl-item"><span class="cl-today"></span> 오늘</span>
       </div>
+
+      <div class="sec-eyebrow" style="margin-top:26px">Sync · 기기 간 동기화</div>
+      <div class="card sync-card">
+        <div class="sync-status" id="syncStatus">
+          <span class="ss-dot" id="ssDot"></span>
+          <span class="ss-tx" id="ssTx">동기화 설정 안 됨</span>
+        </div>
+        <p class="sync-desc">PC·폰에서 같은 <b>동기화 코드</b>를 넣으면 기록이 자동으로 이어져요. 본인만 아는 코드를 정하세요 (예: 슈피겐 생일+이니셜).</p>
+        <input type="text" id="syncCode" class="sync-input" placeholder="동기화 코드 입력" autocomplete="off">
+        <div class="sync-btns">
+          <button class="sync-btn primary" id="syncConnect">연결 / 지금 동기화</button>
+          <button class="sync-btn" id="syncPull">불러오기</button>
+        </div>
+        <div class="sync-foot" id="syncFoot"></div>
+      </div>
+
+      <div class="sec-eyebrow" style="margin-top:22px">Backup · 수동 백업</div>
+      <div class="card sync-card">
+        <p class="sync-desc">동기화와 별개로, 파일로 직접 내보내고 가져올 수도 있어요.</p>
+        <div class="sync-btns">
+          <button class="sync-btn" id="exportBtn">내보내기 (.json)</button>
+          <button class="sync-btn" id="importBtn">파일 가져오기</button>
+        </div>
+      </div>
     </section>
   </main>
+  <input type="file" id="importFile" accept="application/json,.json">
 
   <nav class="tabbar">
     <button class="tb-item active" data-mode="plan"><span class="tb-ic">🌅</span><span class="tb-lbl">계획</span></button>
@@ -503,12 +547,30 @@ input[type=file]{display:none}
 
 // ---------- date / state ----------
 const KEY='daily_timebox_v1';
+const SYNC_KEY='daily_timebox_sync';
+
+// ===== Supabase 설정 (아래 두 값만 본인 것으로 교체) =====
+const SUPABASE_URL='https://xgrkeorojklhfhjddxrc.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhncmtlb3JvamtsaGZoamRkeHJjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NDUxMDQsImV4cCI6MjA5NzEyMTEwNH0.nYPRK2B8CgRyblLzKbUyxJuxqXSbhXOZwFqHZLbjnRs';
+const SYNC_ENABLED = SUPABASE_URL.indexOf('http')===0;
+// =====================================================
+
 let cur=new Date(); cur.setHours(0,0,0,0);
 let calMonth=null;
 let store=load();
+let syncCfg=loadSync();
 
 function load(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return{}}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(store))}catch(e){toast('저장 공간이 부족해요 (사진 용량 초과)')}}
+function save(){
+  try{
+    const k=dkey(cur); if(store[k])store[k]._m=Date.now();
+    localStorage.setItem(KEY,JSON.stringify(store));
+  }
+  catch(e){toast('저장 공간이 부족해요 (사진 용량 초과)');}
+  schedulePush();
+}
+function loadSync(){try{return JSON.parse(localStorage.getItem(SYNC_KEY))||{code:''}}catch(e){return{code:''}}}
+function saveSync(){try{localStorage.setItem(SYNC_KEY,JSON.stringify(syncCfg))}catch(e){}}
 function dkey(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function day(){const k=dkey(cur); if(!store[k])store[k]={dump:[],blocks:[],logs:[],diary:''}; return store[k]}
 function isToday(){const t=new Date();t.setHours(0,0,0,0);return t.getTime()===cur.getTime()}
@@ -878,9 +940,130 @@ document.getElementById('calGrid').addEventListener('click',e=>{
   setMode('reflect'); // 과거 날짜는 회고로 바로 진입
 });
 
+// ---------- SYNC ENGINE (Supabase REST) ----------
+let pushTimer=null, syncing=false;
+function sUrl(path){return SUPABASE_URL.replace(/\/$/,'')+'/rest/v1/'+path;}
+function sHeaders(extra){return Object.assign({'apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+SUPABASE_ANON_KEY,'Content-Type':'application/json'},extra||{});}
+
+function setSyncUI(state,msg){
+  const dot=document.getElementById('ssDot'),tx=document.getElementById('ssTx');
+  if(!dot)return;
+  dot.className='ss-dot'+(state==='on'?' on':state==='syncing'?' syncing':state==='err'?' err':'');
+  tx.textContent=msg;
+}
+function refreshSyncStatus(){
+  if(!SYNC_ENABLED){setSyncUI('','동기화 미설정 (코드에 키 입력 필요)');return;}
+  if(!syncCfg.code){setSyncUI('','동기화 코드 미입력');return;}
+  setSyncUI('on','연결됨 · 코드 '+syncCfg.code);
+}
+
+// 날짜별로 더 최근(_m) 데이터를 채택해 병합
+function mergeStores(local,remote){
+  const out={}; const keys=new Set([...Object.keys(local||{}),...Object.keys(remote||{})]);
+  keys.forEach(k=>{
+    const a=local&&local[k], b=remote&&remote[k];
+    if(a&&!b)out[k]=a; else if(b&&!a)out[k]=b;
+    else if(a&&b){out[k]=((b._m||0)>(a._m||0))?b:a;}
+  });
+  return out;
+}
+
+function schedulePush(){
+  if(!SYNC_ENABLED||!syncCfg.code)return;
+  clearTimeout(pushTimer);
+  pushTimer=setTimeout(pushNow,1500);
+}
+async function pushNow(){
+  if(!SYNC_ENABLED||!syncCfg.code||syncing)return;
+  syncing=true; setSyncUI('syncing','업로드 중…');
+  try{
+    const body=[{code:syncCfg.code,data:store,updated_at:new Date().toISOString()}];
+    const res=await fetch(sUrl('boxes?on_conflict=code'),{
+      method:'POST',
+      headers:sHeaders({'Prefer':'resolution=merge-duplicates,return=minimal'}),
+      body:JSON.stringify(body)
+    });
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    setSyncUI('on','동기화됨 · '+nowHM());
+  }catch(e){setSyncUI('err','업로드 실패 (잠시 후 자동 재시도)');}
+  syncing=false;
+}
+async function pullNow(silent){
+  if(!SYNC_ENABLED){toast('먼저 코드에 Supabase 키를 넣어주세요');return;}
+  if(!syncCfg.code){toast('동기화 코드를 입력하세요');return;}
+  syncing=true; setSyncUI('syncing','불러오는 중…');
+  try{
+    const res=await fetch(sUrl('boxes?code=eq.'+encodeURIComponent(syncCfg.code)+'&select=data'),{headers:sHeaders()});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const rows=await res.json();
+    if(rows&&rows[0]&&rows[0].data){
+      store=mergeStores(store,rows[0].data);
+      localStorage.setItem(KEY,JSON.stringify(store));
+      renderAll();
+      setSyncUI('on','불러오기 완료 · '+nowHM());
+      if(!silent)toast('기록을 불러왔어요 ✓');
+    }else{
+      setSyncUI('on','이 코드에 저장된 기록 없음');
+      if(!silent)toast('이 코드로 저장된 기록이 아직 없어요');
+    }
+  }catch(e){setSyncUI('err','불러오기 실패');if(!silent)toast('불러오기 실패 — 키/코드 확인');}
+  syncing=false;
+}
+function nowHM(){const n=new Date();return String(n.getHours()).padStart(2,'0')+':'+String(n.getMinutes()).padStart(2,'0');}
+
+// sync UI handlers
+(function bindSync(){
+  const codeInput=document.getElementById('syncCode');
+  if(codeInput)codeInput.value=syncCfg.code||'';
+  const foot=document.getElementById('syncFoot');
+  if(foot)foot.textContent=SYNC_ENABLED?'PC·폰에서 같은 코드를 넣고 연결하면 자동으로 이어집니다.':'⚠ 아직 Supabase 키가 코드에 입력되지 않았어요. (설정 안내 참고)';
+  const c=document.getElementById('syncConnect');
+  if(c)c.onclick=async()=>{
+    const v=document.getElementById('syncCode').value.trim();
+    if(!v){toast('동기화 코드를 입력하세요');return;}
+    syncCfg.code=v; saveSync(); refreshSyncStatus();
+    await pullNow(true);   // 먼저 원격과 병합
+    await pushNow();       // 합친 결과 업로드
+    toast('연결됐어요 ✓');
+  };
+  const p=document.getElementById('syncPull');
+  if(p)p.onclick=()=>{const v=document.getElementById('syncCode').value.trim();if(v){syncCfg.code=v;saveSync();}pullNow(false);};
+})();
+
+// ---------- BACKUP (manual file) ----------
+document.getElementById('exportBtn').onclick=()=>{
+  const blob=new Blob([JSON.stringify(store)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='daily-timebox-backup-'+dkey(new Date())+'.json';
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+  toast('백업 파일을 내려받았어요');
+};
+document.getElementById('importBtn').onclick=()=>document.getElementById('importFile').click();
+document.getElementById('importFile').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const incoming=JSON.parse(r.result);
+      store=mergeStores(store,incoming);
+      localStorage.setItem(KEY,JSON.stringify(store));
+      renderAll(); schedulePush();
+      toast('가져오기 완료 ✓');
+    }catch(err){toast('파일을 읽지 못했어요');}
+  };
+  r.readAsText(f);
+  e.target.value='';
+});
+
 // ---------- render all ----------
 function renderAll(){renderHeader();renderDump();renderTimeline();renderFeed();if(mode==='reflect')renderReflect();if(mode==='calendar')renderCalendar();}
-renderAll();resetLogTime();
+renderAll();resetLogTime();refreshSyncStatus();
+// 앱 시작 시 자동으로 원격 최신본 병합
+if(SYNC_ENABLED&&syncCfg.code){pullNow(true);}
+// 다시 포그라운드로 돌아올 때도 동기화
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&SYNC_ENABLED&&syncCfg.code)pullNow(true);});
 
 })();
 </script>
