@@ -176,6 +176,42 @@ main{padding:20px 18px 0}
 }
 .tl-block.done .tl-check{background:var(--green);border-color:var(--green);color:#fff}
 
+/* ===== timetable (0~24h) ===== */
+.timeline{position:relative;padding-left:0}
+.tt-early{
+  width:100%;padding:9px;margin-bottom:8px;border-radius:10px;
+  background:var(--line-soft);color:var(--ink-soft);font-size:12.5px;font-weight:700;
+  letter-spacing:-.01em;transition:.15s;
+}
+.tt-early:active{transform:scale(.99)}
+.tt-row{display:flex;align-items:stretch;min-height:40px;border-bottom:1px solid var(--line-soft)}
+.tt-row:first-of-type{border-top:1px solid var(--line-soft)}
+.tt-time{
+  width:44px;flex-shrink:0;font-size:11px;color:var(--ink-faint);font-weight:600;
+  padding:9px 8px 0 2px;text-align:right;letter-spacing:-.02em;
+}
+.tt-slot{flex:1;padding:5px 0 5px 8px;border-left:1px solid var(--line-soft);min-height:30px;display:flex;flex-direction:column;gap:5px;justify-content:center}
+.tt-slot:active{background:var(--line-soft)}
+.tt-block{
+  display:flex;align-items:center;gap:8px;padding:8px 10px;
+  background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:0 9px 9px 0;
+  transition:.15s;
+}
+.tt-block.big{background:var(--accent-soft);border-left-color:var(--accent)}
+.tt-block:not(.big){background:var(--navy-soft);border-left-color:var(--navy)}
+.tt-block.done{opacity:.5}
+.tt-block-main{flex:1;display:flex;align-items:center;gap:7px;min-width:0}
+.tt-block-time{font-size:11px;font-weight:740;color:var(--accent-deep);flex-shrink:0;letter-spacing:-.02em}
+.tt-block:not(.big) .tt-block-time{color:var(--navy)}
+.tt-block-label{font-size:13.5px;font-weight:600;color:var(--ink);letter-spacing:-.01em;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tt-block.done .tt-block-label{text-decoration:line-through}
+.tt-check{
+  width:22px;height:22px;border-radius:7px;border:1.5px solid rgba(0,0,0,.12);
+  flex-shrink:0;display:grid;place-items:center;font-size:12px;color:transparent;
+  background:rgba(255,255,255,.6);transition:.15s;
+}
+.tt-block.done .tt-check{background:var(--green);border-color:var(--green);color:#fff}
+
 /* ===== LOG ===== */
 .log-input{padding:15px 15px 13px;margin-bottom:18px}
 .log-time-row{display:flex;align-items:center;gap:8px;margin-bottom:11px}
@@ -668,7 +704,7 @@ document.getElementById('dumpList').addEventListener('click',e=>{
     const t=input&&input.value;
     if(!t){toast('시간을 먼저 입력해주세요');return;}
     it.planTime=t;
-    const block={id:Date.now()+Math.random(),start:t,label:it.text,done:false,fromBig:it.id};
+    const block={id:Date.now()+Math.random(),start:t,label:it.text,done:!!it.achieved,fromBig:it.id};
     d.blocks.push(block);
     it.blockId=block.id;
     toast('시간블록에 추가됐어요 ✓');
@@ -694,30 +730,79 @@ function removeBlockFor(it){
 
 // ============ PLAN: timeline ============
 let editingBlock=null;
+let showEarly=false; // 새벽(0~6시) 펼침 여부
+function hourOf(t){return parseInt((t||'0').split(':')[0],10)||0;}
 function renderTimeline(){
-  const tl=document.getElementById('timeline'); const blocks=[...day().blocks].sort((a,b)=>a.start.localeCompare(b.start));
-  if(!blocks.length){tl.innerHTML=`<div class="empty"><div class="e-ic">🗓️</div><div class="e-tx">아직 계획한 시간 블록이 없어요.<br>'+ 블록'으로 하루를 설계해보세요.</div></div>`;return;}
-  tl.innerHTML=blocks.map(b=>`
-    <div class="tl-block ${b.done?'done':''}" data-id="${b.id}">
-      <span class="tl-time">${b.start}</span>
-      <div class="tl-body"><div class="tl-label">${b.fromBig?'<span class="tl-big">★</span> ':''}${esc(b.label)}</div></div>
-      <button class="tl-check" data-act="done">✓</button>
-    </div>`).join('');
+  const tl=document.getElementById('timeline');
+  const blocks=[...day().blocks].sort((a,b)=>a.start.localeCompare(b.start));
+  // 시간별 그룹
+  const byHour={};
+  blocks.forEach(b=>{const h=hourOf(b.start);(byHour[h]=byHour[h]||[]).push(b);});
+  const startH=showEarly?0:6;
+  let rows='';
+  // 새벽 펼치기 토글 (접혀 있고, 새벽에 일정이 있거나 없거나 항상 노출)
+  if(!showEarly){
+    const earlyCount=blocks.filter(b=>hourOf(b.start)<6).length;
+    rows+=`<button class="tt-early" data-act="early">▾ 새벽 0~6시 보기${earlyCount?' ('+earlyCount+')':''}</button>`;
+  }else{
+    rows+=`<button class="tt-early" data-act="early">▴ 새벽 접기</button>`;
+  }
+  for(let h=startH;h<24;h++){
+    const items=byHour[h]||[];
+    const label=String(h).padStart(2,'0')+':00';
+    rows+=`<div class="tt-row" data-hour="${h}">
+      <div class="tt-time">${label}</div>
+      <div class="tt-slot" data-act="addhour" data-hour="${h}">
+        ${items.map(b=>`
+          <div class="tt-block ${b.done?'done':''} ${b.fromBig?'big':''}" data-id="${b.id}">
+            <div class="tt-block-main">
+              <span class="tt-block-time">${b.start}</span>
+              <span class="tt-block-label">${b.fromBig?'★ ':''}${esc(b.label)}</span>
+            </div>
+            <button class="tt-check" data-act="done" data-id="${b.id}">✓</button>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }
+  tl.innerHTML=rows;
 }
 document.getElementById('timeline').addEventListener('click',e=>{
-  const block=e.target.closest('.tl-block'); if(!block)return;
-  const id=block.dataset.id; const b=day().blocks.find(x=>String(x.id)===id); if(!b)return;
-  if(e.target.closest('[data-act=done]')){b.done=!b.done;save();renderTimeline();}
-  else{openSheet(b);}
+  const actEl=e.target.closest('[data-act]');
+  if(!actEl)return;
+  const act=actEl.dataset.act;
+  if(act==='early'){showEarly=!showEarly;renderTimeline();return;}
+  if(act==='done'){
+    const id=actEl.dataset.id; const b=day().blocks.find(x=>String(x.id)===id); if(!b)return;
+    setBlockDone(b,!b.done);
+    save();renderTimeline();
+    return;
+  }
+  // 블록 본체 탭 → 수정
+  const blockEl=e.target.closest('.tt-block');
+  if(blockEl){
+    const b=day().blocks.find(x=>String(x.id)===blockEl.dataset.id);
+    if(b){openSheet(b);return;}
+  }
+  // 빈 슬롯 탭 → 그 시간에 새 블록
+  if(act==='addhour'){
+    const h=parseInt(actEl.dataset.hour,10);
+    openSheet(null, String(h).padStart(2,'0')+':00');
+  }
 });
+// 블록 완료 ↔ Big3 달성 동기화
+function setBlockDone(b,val){
+  b.done=val;
+  if(b.fromBig){const it=day().dump.find(x=>String(x.id)===String(b.fromBig));if(it)it.achieved=val;}
+}
 
 // sheet
 const sheetBg=document.getElementById('sheetBg');
-function openSheet(b){
+function openSheet(b,presetTime){
   editingBlock=b||null;
   document.getElementById('sheetTitle').textContent=b?'블록 수정':'시간 블록 추가';
   const now=new Date();
-  document.getElementById('blockStart').value=b?b.start:String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  const def=presetTime||(String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0'));
+  document.getElementById('blockStart').value=b?b.start:def;
   document.getElementById('blockLabel').value=b?b.label:'';
   document.getElementById('sheetDel').style.display=b?'block':'none';
   document.getElementById('sheetOk').textContent=b?'저장':'추가';
@@ -826,7 +911,10 @@ function renderReflect(){
 document.getElementById('big3Review').addEventListener('click',e=>{
   const item=e.target.closest('.b3r-item'); if(!item)return;
   const b=day().dump.find(x=>String(x.id)===item.dataset.id); if(!b)return;
-  b.achieved=!b.achieved;save();renderReflect();
+  b.achieved=!b.achieved;
+  // 연결된 타임블록 완료 상태도 동기화
+  if(b.blockId){const blk=day().blocks.find(x=>String(x.id)===String(b.blockId));if(blk)blk.done=b.achieved;}
+  save();renderReflect();
 });
 let diaryT;
 document.getElementById('diaryInput').addEventListener('input',e=>{
