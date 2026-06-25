@@ -761,6 +761,12 @@ function hourOf(t){return parseInt((t||'0').split(':')[0],10)||0;}
 function renderTimeline(){
   const tl=document.getElementById('timeline');
   const blocks=[...day().blocks].sort((a,b)=>a.start.localeCompare(b.start));
+  // 블록이 Big3인지: fromBig로 연결된 dump 항목이 "지금" big일 때만 true
+  const isBig=(b)=>{
+    if(!b.fromBig)return false;
+    const it=day().dump.find(x=>String(x.id)===String(b.fromBig));
+    return !!(it && it.big);
+  };
   // 시간별 그룹
   const byHour={};
   blocks.forEach(b=>{const h=hourOf(b.start);(byHour[h]=byHour[h]||[]).push(b);});
@@ -779,14 +785,14 @@ function renderTimeline(){
     rows+=`<div class="tt-row" data-hour="${h}">
       <div class="tt-time">${label}</div>
       <div class="tt-slot" data-act="addhour" data-hour="${h}">
-        ${items.map(b=>`
-          <div class="tt-block ${b.done?'done':''} ${b.fromBig?'big':''}" data-id="${b.id}">
+        ${items.map(b=>{const big=isBig(b);return `
+          <div class="tt-block ${b.done?'done':''} ${big?'big':''}" data-id="${b.id}">
             <div class="tt-block-main">
               <span class="tt-block-time">${b.start}</span>
-              <span class="tt-block-label">${b.fromBig?'★ ':''}${esc(b.label)}</span>
+              <span class="tt-block-label">${big?'★ ':''}${esc(b.label)}</span>
             </div>
             <button class="tt-check" data-act="done" data-id="${b.id}">✓</button>
-          </div>`).join('')}
+          </div>`;}).join('')}
       </div>
     </div>`;
   }
