@@ -42,7 +42,7 @@ input,textarea{font-family:inherit;color:inherit}
 textarea{resize:none}
 
 /* ===== shell ===== */
-#app{max-width:480px;margin:0 auto;min-height:100%;background:var(--bg);position:relative;padding-bottom:88px}
+#app{max-width:480px;margin:0 auto;min-height:100%;background:var(--bg);position:relative;padding-bottom:88px;overflow-x:hidden}
 
 /* ===== header ===== */
 header{
@@ -109,11 +109,11 @@ main{padding:20px 18px 0}
 }
 .dump-item.big{border-color:var(--accent);background:linear-gradient(180deg,#fdf1e6,#fffdf8)}
 .di-star{
-  width:30px;height:30px;border-radius:9px;flex-shrink:0;
-  border:1.5px solid var(--line);display:grid;place-items:center;
-  font-size:14px;color:var(--ink-faint);transition:.15s;
+  width:30px;height:30px;border-radius:50%;flex-shrink:0;
+  border:1.5px solid var(--navy);display:grid;place-items:center;
+  font-size:14px;color:var(--navy);transition:.15s;background:var(--navy-soft);
 }
-.dump-item.big .di-star{border-color:var(--accent);background:var(--accent);color:#fff}
+.dump-item.big .di-star{border-radius:9px;border-color:var(--accent);background:var(--accent);color:#fff}
 .di-text{flex:1;font-size:14.5px;letter-spacing:-.01em;line-height:1.35}
 .dump-item.big .di-text{font-weight:680}
 .di-del{font-size:16px;color:var(--ink-faint);padding:4px;opacity:.6}
@@ -122,14 +122,14 @@ main{padding:20px 18px 0}
   font-size:11px;font-weight:700;color:var(--gold);
   background:#fdf6e8;padding:2px 8px;border-radius:7px;margin-left:auto;
 }
-/* Big3 → timeline sender */
+/* dump → timeline sender (모든 항목에 노출) */
 .dump-item{flex-wrap:wrap}
 .di-send{
-  flex-basis:100%;display:none;align-items:center;gap:8px;
-  margin-top:11px;padding-top:11px;border-top:1px dashed #f0ddc4;
+  flex-basis:100%;display:flex;align-items:center;gap:8px;
+  margin-top:11px;padding-top:11px;border-top:1px dashed var(--line);
 }
-.dump-item.big .di-send{display:flex}
-.dump-item.big.queued .di-send{opacity:.55}
+.dump-item.big .di-send{border-top-color:#f0ddc4}
+.dump-item.queued .di-send{opacity:.55}
 .di-send input[type=time]{
   flex:1;padding:9px 11px;border:1px solid var(--line);border-radius:10px;
   font-size:14px;background:var(--surface);font-weight:600;color:var(--ink);
@@ -139,6 +139,7 @@ main{padding:20px 18px 0}
   font-size:12.5px;font-weight:740;color:#fff;background:var(--navy);
   padding:10px 14px;border-radius:10px;white-space:nowrap;transition:.15s;letter-spacing:-.01em;
 }
+.dump-item.big .di-send-btn{background:var(--accent)}
 .di-send-btn:active{transform:scale(.95)}
 .di-send-btn.added{background:var(--green);pointer-events:none}
 .di-send-hint{font-size:11px;color:var(--green);font-weight:700;display:flex;align-items:center;gap:3px}
@@ -352,21 +353,41 @@ main{padding:20px 18px 0}
 .cal-nav{width:38px;height:38px;border-radius:12px;background:var(--surface);border:1px solid var(--line);font-size:17px;color:var(--ink-soft);display:grid;place-items:center;transition:.15s}
 .cal-nav:active{transform:scale(.92)}
 .cal-week{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:6px}
-.cal-week span{text-align:center;font-size:11.5px;font-weight:700;color:var(--ink-faint);padding:4px 0}
+.cal-week span{text-align:center;font-size:11px;font-weight:700;color:var(--ink-faint);padding:4px 0}
 .cal-week span:first-child{color:var(--accent-deep)}
-.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
-.cal-cell{aspect-ratio:1;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:14px;font-weight:600;color:var(--ink);background:var(--surface);border:1px solid var(--line-soft);position:relative;transition:.15s}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-cell{height:46px;border-radius:11px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:13.5px;font-weight:600;color:var(--ink);background:var(--surface);border:1px solid var(--line-soft);position:relative;transition:.15s;min-width:0}
 .cal-cell.empty{background:transparent;border:none}
 .cal-cell.muted{color:var(--ink-faint);background:transparent;border-color:transparent}
 .cal-cell.has{cursor:pointer}
-.cal-cell.has:active{transform:scale(.93)}
+.cal-cell:active{transform:scale(.93)}
 .cal-cell.sun{color:var(--accent-deep)}
 .cal-cell.today{border-color:var(--accent);border-width:1.5px;background:var(--accent-soft);color:var(--accent-deep);font-weight:760}
 .cal-cell.selected{background:var(--navy);color:#fff;border-color:var(--navy)}
 .cal-cell.selected.today{background:var(--navy)}
-.cal-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);position:absolute;bottom:7px}
+.cal-dot{width:5px;height:5px;border-radius:50%;background:var(--accent);position:absolute;bottom:6px}
 .cal-cell.selected .cal-dot{background:#fff}
-.cal-legend{display:flex;gap:18px;margin-top:20px;padding:14px 16px;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.cal-legend{display:flex;gap:18px;margin-top:16px;padding:13px 16px;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+
+/* 달력 아래 회고 패널 */
+.cal-detail{margin-top:16px}
+.cd-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.cd-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line-soft)}
+.cd-date{font-size:15px;font-weight:760;letter-spacing:-.02em;color:var(--ink)}
+.cd-go{font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-soft);padding:6px 12px;border-radius:9px}
+.cd-go:active{transform:scale(.95)}
+.cd-body{padding:14px 16px}
+.cd-sec-label{font-size:10.5px;font-weight:740;letter-spacing:.1em;color:var(--ink-faint);text-transform:uppercase;margin-bottom:8px}
+.cd-big{display:flex;align-items:center;gap:9px;padding:8px 0;font-size:14px;letter-spacing:-.01em}
+.cd-big .bx{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--line);flex-shrink:0;display:grid;place-items:center;font-size:11px;color:transparent}
+.cd-big.ok .bx{background:var(--green);border-color:var(--green);color:#fff}
+.cd-big.ok{color:var(--ink-soft)}
+.cd-diary{font-size:14px;line-height:1.6;color:var(--ink);letter-spacing:-.01em;white-space:pre-wrap}
+.cd-diary.empty{color:var(--ink-faint)}
+.cd-photos{display:flex;gap:6px;overflow-x:auto;margin-top:10px;padding-bottom:2px}
+.cd-photos img{width:64px;height:64px;border-radius:10px;object-fit:cover;flex-shrink:0}
+.cd-divider{height:1px;background:var(--line-soft);margin:14px 0}
+.cd-empty{font-size:13px;color:var(--ink-faint);text-align:center;padding:8px 0}
 .cl-item{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink-soft);font-weight:600}
 .cl-dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
 .cl-today{width:13px;height:13px;border-radius:5px;border:1.5px solid var(--accent);background:var(--accent-soft)}
@@ -421,7 +442,7 @@ input[type=file]{display:none}
     <section class="view active" id="view-plan">
       <div class="big3-banner">
         <span class="ic">⚡</span>
-        <span class="tx">할 일을 적고 별을 눌러 <b>Big 3</b>를 정한 뒤, <b>시간만 입력</b>하면 아래 타임라인으로 바로 넘어가요.</span>
+        <span class="tx">모든 할 일은 <b>시간만 입력</b>하면 타임라인으로 가요(파란 블록). 중요한 3개는 <b>○를 눌러 ★ Big 3</b>로 올리면 오렌지 블록이 돼요.</span>
       </div>
 
       <div class="block">
@@ -501,6 +522,8 @@ input[type=file]{display:none}
         <span class="cl-item"><span class="cl-dot"></span> 기록이 있는 날</span>
         <span class="cl-item"><span class="cl-today"></span> 오늘</span>
       </div>
+
+      <div class="cal-detail" id="calDetail"></div>
 
       <div class="sec-eyebrow" style="margin-top:26px">Sync · 기기 간 동기화</div>
       <div class="card sync-card">
@@ -630,8 +653,9 @@ function setMode(m){
   document.querySelectorAll('.tb-item').forEach(t=>t.classList.toggle('active',t.dataset.mode===m));
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
   document.getElementById('view-'+m).classList.add('active');
-  // 달력은 모드 탭(계획/기록/회고)과 무관 → 상단 탭 숨김
+  // 달력은 모드 탭(계획/기록/회고)과 무관 → 상단 탭·날짜네비 숨김
   document.querySelector('.tabs').style.display = m==='calendar' ? 'none' : 'flex';
+  const hn=document.querySelector('.h-nav'); if(hn)hn.style.display = m==='calendar' ? 'none' : 'flex';
   if(m==='log')resetLogTime();
   if(m==='reflect')renderReflect();
   if(m==='calendar')renderCalendar();
@@ -672,7 +696,7 @@ function renderDump(){
     const queued=inTimeline(it);
     return `
     <div class="dump-item ${it.big?'big':''} ${queued?'queued':''}" data-id="${it.id}">
-      <button class="di-star" data-act="star">${it.big?'★':'☆'}</button>
+      <button class="di-star" data-act="star">${it.big?'★':'○'}</button>
       <span class="di-text">${esc(it.text)}</span>
       <button class="di-del" data-act="del">×</button>
       <div class="di-send">
@@ -695,7 +719,9 @@ document.getElementById('dumpList').addEventListener('click',e=>{
   if(act==='star'){
     if(!it.big && bigCount()>=3){toast('Big 3는 최대 3개까지예요');return;}
     it.big=!it.big;
-    if(!it.big){removeBlockFor(it);} // 별 해제 시 연결 블록도 정리
+    // 이미 타임블록에 가 있으면 색(fromBig) 동기화만 (블록은 유지)
+    if(it.blockId){const blk=d.blocks.find(b=>String(b.id)===String(it.blockId));if(blk)blk.fromBig=it.big?it.id:null;}
+    renderTimeline();
   }else if(act==='del'){
     removeBlockFor(it);
     d.dump=d.dump.filter(x=>String(x.id)!==id);
@@ -993,12 +1019,13 @@ function hasEntry(k){
   const d=store[k]; if(!d)return false;
   return (d.dump&&d.dump.length)||(d.blocks&&d.blocks.length)||(d.logs&&d.logs.length)||(d.diary&&d.diary.trim());
 }
+let calSelDate=null; // 달력에서 펼쳐 보는 날짜(dkey)
 function renderCalendar(){
   if(!calMonth){calMonth=new Date(cur.getFullYear(),cur.getMonth(),1);}
   const y=calMonth.getFullYear(), m=calMonth.getMonth();
   document.getElementById('calTitle').textContent=y+'년 '+(m+1)+'월';
-  const first=new Date(y,m,1).getDay();      // 1일의 요일(0=일)
-  const days=new Date(y,m+1,0).getDate();    // 이번 달 일수
+  const first=new Date(y,m,1).getDay();
+  const days=new Date(y,m+1,0).getDate();
   const today=new Date();today.setHours(0,0,0,0);
   let cells='';
   for(let i=0;i<first;i++)cells+='<div class="cal-cell empty"></div>';
@@ -1007,7 +1034,7 @@ function renderCalendar(){
     const k=dkey(dObj);
     const has=hasEntry(k);
     const isTd=dObj.getTime()===today.getTime();
-    const isSel=dObj.getTime()===cur.getTime();
+    const isSel=(k===calSelDate);
     const isSun=dObj.getDay()===0;
     let cls='cal-cell';
     if(has)cls+=' has';
@@ -1017,15 +1044,58 @@ function renderCalendar(){
     cells+=`<div class="${cls}" data-date="${k}">${dnum}${has?'<span class="cal-dot"></span>':''}</div>`;
   }
   document.getElementById('calGrid').innerHTML=cells;
+  renderCalDetail();
+}
+function renderCalDetail(){
+  const box=document.getElementById('calDetail');
+  if(!calSelDate){box.innerHTML='';return;}
+  const d=store[calSelDate];
+  const [yy,mm,dd]=calSelDate.split('-').map(Number);
+  const dObj=new Date(yy,mm-1,dd);
+  const WD=['일','월','화','수','목','금','토'];
+  const title=(mm)+'월 '+dd+'일 ('+WD[dObj.getDay()]+')';
+  if(!d){
+    box.innerHTML=`<div class="cd-card"><div class="cd-head"><span class="cd-date">${title}</span></div><div class="cd-body"><div class="cd-empty">이 날은 기록이 없어요.</div></div></div>`;
+    return;
+  }
+  const bigs=(d.dump||[]).filter(x=>x.big);
+  const logs=(d.logs||[]).filter(x=>x.photo).slice(0,8);
+  const diary=(d.diary||'').trim();
+  let html=`<div class="cd-card"><div class="cd-head"><span class="cd-date">${title}</span><button class="cd-go" data-date="${calSelDate}">그날로 이동 →</button></div><div class="cd-body">`;
+  // Big3
+  html+=`<div class="cd-sec-label">Big 3 · 달성</div>`;
+  if(bigs.length){
+    html+=bigs.map(b=>`<div class="cd-big ${b.achieved?'ok':''}"><span class="bx">✓</span><span>${esc(b.text)}</span></div>`).join('');
+  }else{
+    html+=`<div class="cd-empty" style="text-align:left;padding:2px 0">Big 3 없음</div>`;
+  }
+  html+=`<div class="cd-divider"></div>`;
+  // diary
+  html+=`<div class="cd-sec-label">한 줄 일기</div>`;
+  html+=`<div class="cd-diary ${diary?'':'empty'}">${diary?esc(diary):'작성된 일기가 없어요.'}</div>`;
+  // photos
+  if(logs.length){
+    html+=`<div class="cd-photos">${logs.map(l=>`<img src="${l.photo}" alt="">`).join('')}</div>`;
+  }
+  html+=`</div></div>`;
+  box.innerHTML=html;
 }
 document.getElementById('calPrev').onclick=()=>{calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()-1,1);renderCalendar();};
 document.getElementById('calNext').onclick=()=>{calMonth=new Date(calMonth.getFullYear(),calMonth.getMonth()+1,1);renderCalendar();};
 document.getElementById('calGrid').addEventListener('click',e=>{
   const cell=e.target.closest('.cal-cell'); if(!cell||!cell.dataset.date)return;
-  const [yy,mm,dd]=cell.dataset.date.split('-').map(Number);
+  calSelDate=(calSelDate===cell.dataset.date)?null:cell.dataset.date; // 같은 날 다시 누르면 접힘
+  renderCalendar();
+  if(calSelDate){
+    setTimeout(()=>document.getElementById('calDetail').scrollIntoView({behavior:'smooth',block:'nearest'}),60);
+  }
+});
+// '그날로 이동' → 해당 날짜로 전환 후 회고 탭
+document.getElementById('calDetail').addEventListener('click',e=>{
+  const go=e.target.closest('.cd-go'); if(!go)return;
+  const [yy,mm,dd]=go.dataset.date.split('-').map(Number);
   cur=new Date(yy,mm-1,dd);cur.setHours(0,0,0,0);
-  renderAll();
-  setMode('reflect'); // 과거 날짜는 회고로 바로 진입
+  renderAll();setMode('reflect');
 });
 
 // ---------- SYNC ENGINE (Supabase REST) ----------
