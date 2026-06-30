@@ -191,24 +191,24 @@ main{padding:20px 18px 0}
   width:44px;flex-shrink:0;font-size:11px;color:var(--ink-faint);font-weight:600;
   padding:9px 8px 0 2px;text-align:right;letter-spacing:-.02em;
 }
-.tt-slot{flex:1;padding:5px 0 5px 8px;border-left:1px solid var(--line-soft);min-height:30px;display:flex;flex-direction:column;gap:5px;justify-content:center}
+.tt-slot{flex:1;padding:5px 8px 5px 8px;border-left:1px solid var(--line-soft);min-height:30px;display:flex;flex-direction:column;gap:5px;justify-content:center;min-width:0;overflow:hidden}
 .tt-slot:active{background:var(--line-soft)}
 .tt-block{
   display:flex;align-items:center;gap:8px;padding:8px 10px;
   background:var(--accent-soft);border-left:3px solid var(--accent);border-radius:0 9px 9px 0;
-  transition:.15s;
+  transition:.15s;width:100%;max-width:100%;min-width:0;box-sizing:border-box;
 }
 .tt-block.big{background:var(--accent-soft);border-left-color:var(--accent)}
 .tt-block:not(.big){background:var(--navy-soft);border-left-color:var(--navy)}
 .tt-block.done{opacity:.5}
-.tt-block-main{flex:1;display:flex;align-items:center;gap:7px;min-width:0}
+.tt-block-main{flex:1 1 auto;display:flex;align-items:center;gap:7px;min-width:0;overflow:hidden}
 .tt-block-time{font-size:11px;font-weight:740;color:var(--accent-deep);flex-shrink:0;letter-spacing:-.02em}
 .tt-block:not(.big) .tt-block-time{color:var(--navy)}
-.tt-block-label{font-size:13.5px;font-weight:600;color:var(--ink);letter-spacing:-.01em;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tt-block-label{font-size:13.5px;font-weight:600;color:var(--ink);letter-spacing:-.01em;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1 1 auto}
 .tt-block.done .tt-block-label{text-decoration:line-through}
 .tt-check{
   width:22px;height:22px;border-radius:7px;border:1.5px solid rgba(0,0,0,.12);
-  flex-shrink:0;display:grid;place-items:center;font-size:12px;color:transparent;
+  flex:0 0 22px;display:grid;place-items:center;font-size:12px;color:transparent;
   background:rgba(255,255,255,.6);transition:.15s;
 }
 .tt-block.done .tt-check{background:var(--green);border-color:var(--green);color:#fff}
@@ -448,7 +448,7 @@ input[type=file]{display:none}
       <div class="block">
         <div class="sec-eyebrow">Brain Dump · 머릿속 비우기</div>
         <div class="card dump">
-          <textarea id="dumpInput" placeholder="오늘 해야 할 일, 떠오르는 생각을 전부 적어보세요…&#10;엔터로 하나씩 추가됩니다."></textarea>
+          <textarea id="dumpInput" placeholder="오늘 해야 할 일, 떠오르는 생각을 적어보세요…&#10;엔터는 줄바꿈, 추가는 ‘+추가’ 버튼을 누르세요."></textarea>
           <div class="dump-foot">
             <span class="dump-hint" id="dumpHint">Enter로 추가</span>
             <button class="dump-add" id="dumpAdd">+ 추가</button>
@@ -676,14 +676,13 @@ document.getElementById('todayBtn').onclick=()=>{cur=new Date();cur.setHours(0,0
 // ============ PLAN: brain dump ============
 const dumpInput=document.getElementById('dumpInput');
 function addDump(){
-  const v=dumpInput.value.trim(); if(!v)return;
-  v.split('\n').map(s=>s.trim()).filter(Boolean).forEach(t=>day().dump.push({id:Date.now()+Math.random(),text:t,big:false}));
+  const v=dumpInput.value.replace(/\s+$/,''); if(!v.trim())return;
+  // 입력 전체를 하나의 항목으로 (줄바꿈 포함 보존)
+  day().dump.push({id:Date.now()+Math.random(),text:v,big:false});
   dumpInput.value=''; save(); renderDump();
 }
 document.getElementById('dumpAdd').onclick=addDump;
-dumpInput.addEventListener('keydown',e=>{
-  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();addDump();}
-});
+// Enter는 줄바꿈으로 그대로 둠 (가로채지 않음). 추가는 +추가 버튼으로.
 
 function bigCount(){return day().dump.filter(d=>d.big).length}
 function inTimeline(it){return it.blockId && day().blocks.some(b=>String(b.id)===String(it.blockId))}
@@ -730,7 +729,7 @@ document.getElementById('dumpList').addEventListener('click',e=>{
     const t=input&&input.value;
     if(!t){toast('시간을 먼저 입력해주세요');return;}
     it.planTime=t;
-    const block={id:Date.now()+Math.random(),start:t,label:it.text,done:!!it.achieved,fromBig:it.id};
+    const block={id:Date.now()+Math.random(),start:t,label:it.text.replace(/\s*\n\s*/g,' ').trim(),done:!!it.achieved,fromBig:it.id};
     d.blocks.push(block);
     it.blockId=block.id;
     toast('시간블록에 추가됐어요 ✓');
